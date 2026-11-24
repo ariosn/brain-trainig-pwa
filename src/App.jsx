@@ -10,6 +10,8 @@ import ReasoningGame from './components/ReasoningGame'
 import CoordinationGame from './components/CoordinationGame'
 import VisuospatialGame from './components/VisuospatialGame'
 import BounceGame from './components/BounceGame'
+import PinLogin from './components/PinLogin'
+import { exportDatabaseBackup, importDatabaseBackup, updatePin } from './backupAndAuth'
 
 const CATEGORIES = [
   { 
@@ -53,6 +55,9 @@ const CATEGORIES = [
 ]
 
 function App() {
+  // Estado de autenticación administrativa por PIN
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
   // Cargar Pacientes y Sesiones desde la BD local (IndexedDB)
   const patients = useLiveQuery(() => db.patients.toArray(), []) || []
   const allSessions = useLiveQuery(() => db.sessions.toArray(), []) || []
@@ -71,6 +76,35 @@ function App() {
     difficulty: 'facil',
     customTime: ''
   })
+
+  // Manejadores de Respaldos JSON y Seguridad PIN
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const res = await importDatabaseBackup(file)
+      alert(`Respaldo restaurado exitosamente: ${res.patientsCount} pacientes y ${res.sessionsCount} sesiones.`)
+    } catch (err) {
+      alert(`Error al importar respaldo: ${err.message}`)
+    }
+    e.target.value = ''
+  }
+
+  const handleChangePin = () => {
+    const newPin = prompt('Ingrese el nuevo PIN de seguridad (4 dígitos numéricos):')
+    if (!newPin) return
+    try {
+      updatePin(newPin)
+      alert('PIN actualizado correctamente.')
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  // Bloqueo de acceso si no se ha ingresado el PIN administrativo
+  if (!isAuthenticated) {
+    return <PinLogin onUnlock={() => setIsAuthenticated(true)} />
+  }
 
   const activePatient = patients.find((p) => p.id === selectedPatientId) || null
 
@@ -141,6 +175,40 @@ function App() {
         <h1>🧠 Brain Training PWA</h1>
         <p className="subtitle">Módulo de Evaluación y Estimulación Cognitiva</p>
       </header>
+
+      {/* BARRA DE SEGURIDAD Y RESPALDOS LOCALES */}
+      {viewMode === 'list' && (
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', padding: '0.9rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #cbd5e1', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={exportDatabaseBackup}
+            style={{ padding: '0.6rem 1rem', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            💾 Exportar Respaldo (.json)
+          </button>
+
+          <label style={{ padding: '0.6rem 1rem', background: '#0284c7', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-block' }}>
+            📂 Importar Respaldo
+            <input type="file" accept=".json" onChange={handleImportFile} style={{ display: 'none' }} />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleChangePin}
+            style={{ padding: '0.6rem 1rem', background: '#475569', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            🔑 Cambiar PIN
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsAuthenticated(false)}
+            style={{ padding: '0.6rem 1rem', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginLeft: 'auto' }}
+          >
+            🔒 Bloquear Sesión
+          </button>
+        </div>
+      )}
 
       {/* VISTA 1: LISTA Y NUEVO PACIENTE */}
       {viewMode === 'list' && (
