@@ -19,9 +19,9 @@ export default function PinLogin({ onUnlock }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Acceso Terapeuta</h2>
+        <h2 style={styles.title}>Acceso</h2>
         <p style={styles.subtitle}>
-          Ingrese su PIN de 4 dígitos para acceder a las fichas clínicas y actividades.
+          Ingrese su PIN de 4 dígitos para acceder al sistema.
         </p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
